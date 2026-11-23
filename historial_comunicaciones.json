@@ -1,0 +1,39 @@
+[
+  {
+    "texto_original": "La camara de frio 2 subio a 9 grados con 120 cajas de uva red globe",
+    "intencion": "REPORTE_CALIDAD",
+    "confianza_intencion": 0.77,
+    "sentimiento": "NEGATIVO",
+    "entidades": {
+      "PRODUCTO": "uva red globe",
+      "AREA": "camara de frio 2",
+      "CANTIDAD": "9 grados"
+    },
+    "accion_sugerida": "ALERTA_CRITICA_CALIDAD",
+    "timestamp": "13:45:38"
+  },
+  {
+    "texto_original": "La camara de frio 2 subio a 9 grados con 120 cajas de uva red globe",
+    "intencion": "REPORTE_CALIDAD",
+    "confianza_intencion": 0.77,
+    "sentimiento": "NEGATIVO",
+    "entidades": {
+      "PRODUCTO": "uva red globe",
+      "AREA": "camara de frio 2",
+      "CANTIDAD": "9 grados"
+    },
+    "accion_sugerida": "ALERTA_CRITICA_CALIDAD",
+    "timestamp": "14:09:50"
+  },
+  {
+    "texto_original": "kmara 1 subio temperatura a 7 grados xfa revisar 90 cajas de uba",
+    "intencion": "INTENCION_NO_CLARA",
+    "confianza_intencion": 0.62,
+    "sentimiento": "NEGATIVO",
+    "entidades": {
+      "CANTIDAD": "7 grados"
+    },
+    "accion_sugerida": "DERIVAR_A_SUPERVISOR",
+    "timestamp": "14:10:12"
+  }
+]

@@ -1,0 +1,113 @@
+{
+  "casos_sustentacion": [
+    {
+      "id": "CASO_A",
+      "tipo": "Caso directo / claro con entidades (Calidad / Falla)",
+      "mensaje": "La camara de frio 2 subio a 9 grados con 120 cajas de uva red globe",
+      "intencion_esperada": "REPORTE_CALIDAD",
+      "sentimiento_esperado": "NEGATIVO",
+      "entidades_esperadas": {
+        "AREA": "camara de frio 2",
+        "PRODUCTO": "uva red globe",
+        "CANTIDAD": "120 cajas"
+      },
+      "accion_esperada": "ALERTA_CRITICA_CALIDAD",
+      "justificacion_demo": "Caso típico de variación de temperatura crítica en almacenamiento de fruta fresca."
+    },
+    {
+      "id": "CASO_B",
+      "tipo": "Caso con errores ortográficos y jerga de campo",
+      "mensaje": "urgnt la faja d empaq del paking 1 sta trabada botando javas d esparago vrd",
+      "intencion_esperada": "FALLA_EQUIPO",
+      "sentimiento_esperado": "NEGATIVO",
+      "entidades_esperadas": {
+        "AREA": "paking 1",
+        "PRODUCTO": "esparago vrd"
+      },
+      "accion_esperada": "NOTIFICAR_MANTENIMIENTO",
+      "justificacion_demo": "Prueba de robustez ante lenguaje informal ('urgnt', 'd', 'sta', 'javas', 'esparago vrd')."
+    },
+    {
+      "id": "CASO_C",
+      "tipo": "Caso ambiguo / ininteligible (<65% confianza - Regla Fallback)",
+      "mensaje": "hola compa queria avisar que paso una cosa muy rara x aca y no se que decir",
+      "intencion_esperada": "INTENCION_NO_CLARA",
+      "sentimiento_esperado": "NEUTRAL",
+      "entidades_esperadas": {},
+      "accion_esperada": "DERIVAR_A_SUPERVISOR",
+      "justificacion_demo": "Demuestra la regla de incertidumbre del negocio activando el fallback a supervisión humana."
+    },
+    {
+      "id": "CASO_D",
+      "tipo": "Caso de consulta de inventario",
+      "mensaje": "Cuantos pallets listos de esparrago fresco quedan en el lote L-502 de camara 1?",
+      "intencion_esperada": "CONSULTA_INVENTARIO",
+      "sentimiento_esperado": "NEUTRAL",
+      "entidades_esperadas": {
+        "PRODUCTO": "esparrago fresco",
+        "CODIGO_LOTE": "L-502",
+        "AREA": "camara 1"
+      },
+      "accion_esperada": "CONSULTAR_SISTEMA_WMS",
+      "justificacion_demo": "Operador consultando disponibilidad de producto terminado antes de consolidar carga."
+    },
+    {
+      "id": "CASO_E",
+      "tipo": "Caso de solicitud de despacho",
+      "mensaje": "Favor de programar salida de camion con guia de remision 004-9821 para contenedor de uva thompson al puerto de Pisco",
+      "intencion_esperada": "SOLICITUD_DESPACHO",
+      "sentimiento_esperado": "NEUTRAL",
+      "entidades_esperadas": {
+        "PRODUCTO": "uva thompson",
+        "CODIGO_LOTE": "004-9821",
+        "AREA": "puerto de Pisco"
+      },
+      "accion_esperada": "GENERAR_ORDEN_DESPACHO",
+      "justificacion_demo": "Requerimiento logístico de transporte y documentación aduanera de exportación."
+    },
+    {
+      "id": "CASO_F",
+      "tipo": "Caso con sentimiento negativo crítico",
+      "mensaje": "PELIGRO fuga de gas amoniaco en el compresor central de sala de maquinas olor insoportable y evacuacion inmediata",
+      "intencion_esperada": "FALLA_EQUIPO",
+      "sentimiento_esperado": "NEGATIVO",
+      "entidades_esperadas": {
+        "AREA": "sala de maquinas"
+      },
+      "accion_esperada": "EMERGENCIA_PARADA_PLANTA",
+      "justificacion_demo": "Incidencia crítica de seguridad ocupacional con polaridad negativa extrema (alta confianza)."
+    }
+  ],
+  "casos_adicionales": [
+    {
+      "id": "EXTRA_1",
+      "tipo": "Calidad - Condición de uva",
+      "mensaje": "Lote U-110 de uva crimson presenta sintomas de deshidratacion y bayas sueltas en linea de seleccion 3",
+      "intencion_esperada": "REPORTE_CALIDAD"
+    },
+    {
+      "id": "EXTRA_2",
+      "tipo": "Inventario - Jabas cosecheras",
+      "mensaje": "Se requiere saber stock disponible de jabas cosecheras plasticas vacias en acopio central",
+      "intencion_esperada": "CONSULTA_INVENTARIO"
+    },
+    {
+      "id": "EXTRA_3",
+      "tipo": "Despacho - Embarque urgente",
+      "mensaje": "Confirmar chofer y placa de cisterna para embarque de esparragos con destino al aeropuerto Jorge Chavez hoy 5pm",
+      "intencion_esperada": "SOLICITUD_DESPACHO"
+    },
+    {
+      "id": "EXTRA_4",
+      "tipo": "Falla - Termo-registrador",
+      "mensaje": "El sensor termorregistrador del tunel de enfriamiento rapido no marca senal y no enciende pantalla",
+      "intencion_esperada": "FALLA_EQUIPO"
+    },
+    {
+      "id": "EXTRA_5",
+      "tipo": "Ambigüedad - Mensaje coloquial sin contexto",
+      "mensaje": "bueno amigos ya esta todo listo como quedamos ayer cualquier cosa me avisan por favor",
+      "intencion_esperada": "INTENCION_NO_CLARA"
+    }
+  ]
+}

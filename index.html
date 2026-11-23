@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini-Azure LUIS v2 Cloud - AgroIca (RBAC)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+    .badge-negativo { background-color: #fee2e2; color: #991b1b; }
+    .badge-positivo { background-color: #dcfce7; color: #166534; }
+    .badge-neutral { background-color: #f3f4f6; color: #374151; }
+    .badge-fallback { background-color: #fce7f3; color: #9d174d; font-weight: bold; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+  <!-- ============================================================== -->
+  <!-- MODAL / VISTA DE LOGIN (CUANDO NO ESTÁ AUTENTICADO) -->
+  <!-- ============================================================== -->
+  <div id="loginView" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-7 shadow-2xl space-y-6">
+      
+      <div class="text-center space-y-2">
+        <div class="w-14 h-14 bg-indigo-600/20 text-indigo-400 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-indigo-500/30">
+          🍇
+        </div>
+        <h2 class="text-xl font-bold text-white tracking-tight">Mini-Azure LUIS v2 Cloud</h2>
+        <p class="text-xs text-slate-400">Control de Acceso Basado en Roles (RBAC) &bull; AgroIca</p>
+      </div>
+
+      <div id="loginError" class="hidden p-3 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span id="loginErrorMsg">Credenciales inválidas</span>
+      </div>
+
+      <form id="formLogin" onsubmit="ejecutarLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Usuario:</label>
+          <input type="text" id="loginUser" required placeholder="operador_ica o supervisor_ica"
+                 class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Contraseña:</label>
+          <input type="password" id="loginPass" required placeholder="••••••••"
+                 class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button type="submit" id="btnLogin"
+                class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-lg shadow-indigo-600/30">
+          Iniciar Sesión
+        </button>
+      </form>
+
+      <!-- BOTONES RÁPIDOS DE DEMOSTRACIÓN -->
+      <div class="border-t border-slate-800 pt-4 space-y-2">
+        <p class="text-[11px] font-semibold text-slate-400 text-center uppercase tracking-wider">Acceso rápido para demostración:</p>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="prellenarCredenciales('operador')"
+                  class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-400 p-2.5 rounded-lg font-medium transition text-left flex flex-col">
+            <span class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-user-tag text-emerald-400"></i> OPERADOR</span>
+            <span class="text-[10px] text-slate-400">Solo envío de reportes</span>
+          </button>
+          <button onclick="prellenarCredenciales('supervisor')"
+                  class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-400 p-2.5 rounded-lg font-medium transition text-left flex flex-col">
+            <span class="font-bold flex items-center gap-1.5"><i class="fa-solid fa-shield-halved text-indigo-400"></i> SUPERVISOR</span>
+            <span class="text-[10px] text-slate-400">Acceso total al dashboard</span>
+          </button>
+        </div>
+        <button onclick="probarAccesoSinToken()" 
+                class="w-full text-center text-[11px] text-rose-400 hover:underline pt-1">
+          ⚠️ Probar acceso sin token (Demostrar rechazo 401 Unauthorized)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- NAVBAR SUPERIOR (CUANDO YA INICIÓ SESIÓN) -->
+  <!-- ============================================================== -->
+  <header class="bg-slate-950 border-b border-slate-800 text-white sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-xl shadow-md">🍇</div>
+        <div>
+          <h1 class="text-sm font-bold tracking-tight text-white flex items-center gap-2">
+            Mini-Azure LUIS v2 Cloud
+            <span id="navRoleBadge" class="text-[10px] uppercase font-mono px-2 py-0.5 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              ROL
+            </span>
+          </h1>
+          <p class="text-[11px] text-slate-400" id="navUserDesc">Usuario: -</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button onclick="probarEndpointEstadisticasDirecto()" title="Prueba de endpoint para demo de roles"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+          <i class="fa-solid fa-code"></i> Probar GET /estadisticas
+        </button>
+        <button onclick="cerrarSesion()" 
+                class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Salir
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================== -->
+  <!-- CONTENEDOR PRINCIPAL -->
+  <!-- ============================================================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow space-y-6 w-full">
+
+    <!-- BANNER DE RESTRICCIÓN PARA ROL OPERADOR (403 FORBIDDEN) -->
+    <div id="bannerRestriccionOperador" class="hidden p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3">
+      <i class="fa-solid fa-shield-cat text-amber-400 text-base mt-0.5"></i>
+      <div>
+        <p class="font-bold text-amber-300 text-sm">Perfil Restringido: ROL OPERADOR (Ingreso de Comentarios)</p>
+        <p class="text-slate-300 mt-1">
+          Usted tiene permisos únicamente para registrar reportes operativos y consultar su análisis semántico inmediato. 
+          El acceso al <b>Dashboard gerencial</b> y a las <b>estadísticas acumuladas</b> está protegido y restringido con <b>HTTP 403 Forbidden</b>.
+        </p>
+      </div>
+    </div>
+
+    <!-- SECCIÓN DE KPIS (SOLO VISIBLE O PERMITIDA AL SUPERVISOR) -->
+    <section id="seccionKpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Mensajes</p>
+          <h3 id="kpiTotal" class="text-2xl font-bold text-white mt-1">0</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Comunicaciones procesadas</p>
+        </div>
+        <div class="w-12 h-12 bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center text-xl">
+          <i class="fa-solid fa-envelope"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Confianza Promedio</p>
+          <h3 id="kpiConfianza" class="text-2xl font-bold text-white mt-1">0.0%</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Umbral objetivo: > 65%</p>
+        </div>
+        <div class="w-12 h-12 bg-emerald-500/20 text-emerald-400 rounded-xl flex items-center justify-center text-xl">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tasa de Derivación</p>
+          <h3 id="kpiDerivacion" class="text-2xl font-bold text-amber-400 mt-1">0.0%</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Fallback a supervisor</p>
+        </div>
+        <div class="w-12 h-12 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center text-xl">
+          <i class="fa-solid fa-user-shield"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Alertas Críticas</p>
+          <h3 id="kpiAlertas" class="text-2xl font-bold text-rose-400 mt-1">0</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">Emergencias operativas</p>
+        </div>
+        <div class="w-12 h-12 bg-rose-500/20 text-rose-400 rounded-xl flex items-center justify-center text-xl">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMULADOR Y GRÁFICOS -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- PANEL DE ENVÍO DE REPORTES (OPERADOR Y SUPERVISOR) (7 cols) -->
+      <div class="lg:col-span-7 bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg space-y-4">
+        <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-paper-plane text-indigo-400"></i>
+            Ingreso de Comentarios Operativos (POST /nlp/entender-comando)
+          </h2>
+          <span class="text-[10px] bg-slate-900 text-slate-400 px-2 py-0.5 rounded font-mono">Token Bearer</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Cargar caso de prueba de sustentación:</label>
+          <select id="selectCaso" onchange="cargarCasoPredefinido()" class="w-full text-xs p-2 rounded-lg border border-slate-700 bg-slate-900 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="">-- Seleccionar caso de prueba --</option>
+            <option value="A">Caso A: Directo con entidades (Falla temp uva red globe)</option>
+            <option value="B">Caso B: Con errores ortográficos / jerga campo ("faja d empaq")</option>
+            <option value="C">Caso C: Ambiguo (<65% confianza -> FALLBACK A SUPERVISOR)</option>
+            <option value="D">Caso D: Consulta inventario (Pallets espárrago lote L-502)</option>
+            <option value="E">Caso E: Solicitud despacho (Guía 004-9821 puerto Pisco)</option>
+            <option value="F">Caso F: Negativo crítico (Fuga amoniaco compresor)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="msgInput" class="block text-xs font-medium text-slate-300 mb-1">Reporte en lenguaje natural:</label>
+          <textarea id="msgInput" rows="3" 
+                    placeholder="Escriba el reporte operativo..." 
+                    class="w-full text-sm p-3 rounded-lg border border-slate-700 bg-slate-900 text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+          <div class="flex items-center space-x-2">
+            <button onclick="enviarMensaje()" id="btnEnviar"
+                    class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-4 py-2.5 rounded-lg shadow-md transition flex items-center gap-1.5">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Enviar a NLP Cloud
+            </button>
+            <button onclick="ejecutarLote()" id="btnLote"
+                    class="bg-slate-700 hover:bg-slate-600 text-white font-medium text-xs px-3.5 py-2.5 rounded-lg transition flex items-center gap-1.5">
+              <i class="fa-solid fa-bolt"></i> Simular Lote (6 Casos)
+            </button>
+          </div>
+
+          <button id="btnLimpiar" onclick="reiniciarEstadisticas()" 
+                  class="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs px-3 py-2 rounded-lg font-medium transition flex items-center gap-1">
+            <i class="fa-solid fa-rotate-left"></i> Limpiar Tablero
+          </button>
+        </div>
+
+        <!-- RESPUESTA JSON DECODIFICADA -->
+        <div id="resultadoBox" class="hidden mt-4 p-4 rounded-lg bg-slate-900 border border-slate-700 space-y-3">
+          <h3 class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex justify-between">
+            <span>Respuesta del Servidor Cloud:</span>
+            <span id="resEmisor" class="text-indigo-400 font-mono text-[10px]">Emisor: -</span>
+          </h3>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-800 p-2.5 rounded border border-slate-700">
+              <span class="text-slate-400 block text-[10px] font-semibold">INTENCIÓN</span>
+              <span id="resIntencion" class="font-bold text-indigo-400 text-xs">-</span>
+            </div>
+            <div class="bg-slate-800 p-2.5 rounded border border-slate-700">
+              <span class="text-slate-400 block text-[10px] font-semibold">CONFIANZA</span>
+              <span id="resConfianza" class="font-bold text-white text-xs">-</span>
+            </div>
+            <div class="bg-slate-800 p-2.5 rounded border border-slate-700">
+              <span class="text-slate-400 block text-[10px] font-semibold">SENTIMIENTO</span>
+              <span id="resSentimiento" class="font-bold text-xs">-</span>
+            </div>
+            <div class="bg-slate-800 p-2.5 rounded border border-slate-700">
+              <span class="text-slate-400 block text-[10px] font-semibold">ACCIÓN SUGERIDA</span>
+              <span id="resAccion" class="font-bold text-amber-400 text-xs">-</span>
+            </div>
+          </div>
+          <div class="bg-slate-800 p-2.5 rounded border border-slate-700 text-xs">
+            <span class="text-slate-400 block text-[10px] font-semibold mb-1">ENTIDADES EXTRAÍDAS:</span>
+            <div id="resEntidades" class="text-slate-300 flex flex-wrap gap-1.5">-</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL DE GRÁFICOS (SOLO SUPERVISOR) (5 cols) -->
+      <div id="panelGraficos" class="lg:col-span-5 bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg flex flex-col justify-between space-y-4">
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-3">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-chart-pie text-indigo-400"></i> Distribución de Intenciones
+            </h2>
+          </div>
+          <div class="h-44">
+            <canvas id="chartIntenciones"></canvas>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-3">
+            <h2 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-face-smile text-emerald-400"></i> Distribución de Sentimiento
+            </h2>
+          </div>
+          <div class="h-28">
+            <canvas id="chartSentimientos"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- BITÁCORA DE COMUNICACIONES (SOLO SUPERVISOR) -->
+    <section id="seccionBitacora" class="bg-slate-800/80 p-5 rounded-xl border border-slate-700/60 shadow-lg space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-list-check text-indigo-400"></i> Bitácora de Mensajes Recientes (Toda la Planta)
+        </h2>
+        <button onclick="actualizarEstadisticas()" class="text-xs text-indigo-400 hover:text-indigo-300 font-medium">
+          <i class="fa-solid fa-arrows-rotate"></i> Actualizar
+        </button>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-700 text-xs text-left">
+          <thead class="bg-slate-900 text-slate-400 font-semibold uppercase">
+            <tr>
+              <th class="px-3 py-2.5">Emisor</th>
+              <th class="px-3 py-2.5">Texto del Reporte</th>
+              <th class="px-3 py-2.5">Intención</th>
+              <th class="px-3 py-2.5">Confianza</th>
+              <th class="px-3 py-2.5">Sentimiento</th>
+              <th class="px-3 py-2.5">Entidades</th>
+              <th class="px-3 py-2.5">Acción Sugerida</th>
+            </tr>
+          </thead>
+          <tbody id="tablaBitacora" class="divide-y divide-slate-800 text-slate-300">
+            <tr>
+              <td colspan="7" class="px-3 py-6 text-center text-slate-500">Inicie sesión como Supervisor para ver la bitácora acumulada.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="bg-slate-950 border-t border-slate-800 py-3 text-center text-xs text-slate-500">
+    Mini-Azure LUIS v2 Cloud &bull; Control de Acceso por Roles (RBAC) &bull; Agroexportación Ica
+  </footer>
+
+  <!-- SCRIPT LOGIC (JWT, FETCH & CHART.JS) -->
+  <script>
+    const CASOS_DEMO = {
+      "A": "La camara de frio 2 subio a 9 grados con 120 cajas de uva red globe",
+      "B": "urgnt la faja d empaq del paking 1 sta trabada botando javas d esparago vrd",
+      "C": "hola compa queria avisar que paso una cosa muy rara x aca y no se que decir",
+      "D": "Cuantos pallets listos de esparrago fresco quedan en el lote L-502 de camara 1?",
+      "E": "Favor de programar salida de camion con guia de remision 004-9821 para contenedor de uva thompson al puerto de Pisco",
+      "F": "PELIGRO fuga de gas amoniaco en el compresor central de sala de maquinas olor insoportable y evacuacion inmediata"
+    };
+
+    let tokenActual = sessionStorage.getItem("token") || "";
+    let usuarioActual = JSON.parse(sessionStorage.getItem("usuario") || "null");
+
+    let chartInt = null;
+    let chartSent = null;
+
+    function getBaseUrl() {
+      return window.location.origin;
+    }
+
+    function prellenarCredenciales(tipo) {
+      if (tipo === 'operador') {
+        document.getElementById("loginUser").value = "operador_ica";
+        document.getElementById("loginPass").value = "operador2026";
+      } else {
+        document.getElementById("loginUser").value = "supervisor_ica";
+        document.getElementById("loginPass").value = "supervisor2026";
+      }
+    }
+
+    async function ejecutarLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById("loginUser").value.trim();
+      const p = document.getElementById("loginPass").value.trim();
+      const errBox = document.getElementById("loginError");
+      errBox.classList.add("hidden");
+
+      try {
+        const resp = await fetch(`${getBaseUrl()}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || "Error de autenticación");
+        }
+
+        const data = await resp.json();
+        tokenActual = data.access_token;
+        usuarioActual = data;
+
+        sessionStorage.setItem("token", tokenActual);
+        sessionStorage.setItem("usuario", JSON.stringify(usuarioActual));
+
+        aplicarPermisosPorRol();
+      } catch (err) {
+        document.getElementById("loginErrorMsg").innerText = err.message;
+        errBox.classList.remove("hidden");
+      }
+    }
+
+    function aplicarPermisosPorRol() {
+      if (!usuarioActual) {
+        document.getElementById("loginView").classList.remove("hidden");
+        return;
+      }
+
+      document.getElementById("loginView").classList.add("hidden");
+      document.getElementById("navUserDesc").innerText = `Usuario: ${usuarioActual.username} (${usuarioActual.nombre_completo})`;
+      
+      const badge = document.getElementById("navRoleBadge");
+      badge.innerText = usuarioActual.role;
+
+      if (usuarioActual.role === "OPERADOR") {
+        badge.className = "text-[10px] uppercase font-mono px-2 py-0.5 rounded font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+        // Restringir dashboard y estadísticas
+        document.getElementById("bannerRestriccionOperador").classList.remove("hidden");
+        document.getElementById("seccionKpis").classList.add("hidden");
+        document.getElementById("panelGraficos").classList.add("hidden");
+        document.getElementById("seccionBitacora").classList.add("hidden");
+        document.getElementById("btnLimpiar").classList.add("hidden");
+      } else {
+        badge.className = "text-[10px] uppercase font-mono px-2 py-0.5 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30";
+        // Mostrar dashboard completo para Supervisor
+        document.getElementById("bannerRestriccionOperador").classList.add("hidden");
+        document.getElementById("seccionKpis").classList.remove("hidden");
+        document.getElementById("panelGraficos").classList.remove("hidden");
+        document.getElementById("seccionBitacora").classList.remove("hidden");
+        document.getElementById("btnLimpiar").classList.remove("hidden");
+        actualizarEstadisticas();
+      }
+    }
+
+    function cerrarSesion() {
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("usuario");
+      tokenActual = "";
+      usuarioActual = null;
+      document.getElementById("loginView").classList.remove("hidden");
+    }
+
+    // Demostrar bloqueo 401 Unauthorized sin token
+    async function probarAccesoSinToken() {
+      try {
+        const resp = await fetch(`${getBaseUrl()}/nlp/estadisticas`);
+        const status = resp.status;
+        const body = await resp.json();
+        alert(`[DEMO 401 UNAUTHORIZED]\nHTTP Status: ${status}\nRespuesta del Servidor:\n${JSON.stringify(body, null, 2)}`);
+      } catch (e) {
+        alert("Error de red: " + e.message);
+      }
+    }
+
+    // Demostrar bloqueo 403 Forbidden para Operador
+    async function probarEndpointEstadisticasDirecto() {
+      try {
+        const resp = await fetch(`${getBaseUrl()}/nlp/estadisticas`, {
+          headers: { "Authorization": `Bearer ${tokenActual}` }
+        });
+        const status = resp.status;
+        const body = await resp.json();
+        if (status === 403) {
+          alert(`[DEMO 403 FORBIDDEN - RESTRICCIÓN DE ROL]\nHTTP Status: ${status}\nRespuesta:\n${JSON.stringify(body, null, 2)}\n\nEl servidor bloqueó la solicitud porque su rol actual es '${usuarioActual?.role}'.`);
+        } else if (status === 200) {
+          alert(`[DEMO 200 OK - ACCESO PERMITIDO]\nHTTP Status: ${status}\nUsted es '${usuarioActual?.role}', por tanto tiene acceso completo.`);
+        } else {
+          alert(`HTTP Status: ${status}\n${JSON.stringify(body)}`);
+        }
+      } catch (e) {
+        alert("Error: " + e.message);
+      }
+    }
+
+    function cargarCasoPredefinido() {
+      const sel = document.getElementById("selectCaso").value;
+      if (sel && CASOS_DEMO[sel]) {
+        document.getElementById("msgInput").value = CASOS_DEMO[sel];
+      }
+    }
+
+    function initCharts() {
+      const ctxInt = document.getElementById("chartIntenciones").getContext("2d");
+      chartInt = new Chart(ctxInt, {
+        type: 'bar',
+        data: {
+          labels: ['CALIDAD', 'FALLA', 'INVENTARIO', 'DESPACHO', 'NO_CLARA'],
+          datasets: [{
+            label: 'Mensajes',
+            data: [0, 0, 0, 0, 0],
+            backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#ec4899'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, ticks: { stepSize: 1, color: '#94a3b8' }, grid: { color: '#334155' } },
+            x: { ticks: { color: '#94a3b8' }, grid: { display: false } }
+          }
+        }
+      });
+
+      const ctxSent = document.getElementById("chartSentimientos").getContext("2d");
+      chartSent = new Chart(ctxSent, {
+        type: 'doughnut',
+        data: {
+          labels: ['Positivo', 'Neutral', 'Negativo'],
+          datasets: [{
+            data: [0, 0, 0],
+            backgroundColor: ['#22c55e', '#64748b', '#ef4444'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 }, color: '#94a3b8' } } }
+        }
+      });
+    }
+
+    async function enviarMensaje() {
+      const txt = document.getElementById("msgInput").value.trim();
+      if (!txt) {
+        alert("Ingrese un texto para analizar.");
+        return;
+      }
+
+      const btn = document.getElementById("btnEnviar");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Procesando...`;
+
+      try {
+        const resp = await fetch(`${getBaseUrl()}/nlp/entender-comando`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${tokenActual}`
+          },
+          body: JSON.stringify({ texto: txt })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.detail || `Error HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        renderizarResultado(data);
+        if (usuarioActual && usuarioActual.role === "SUPERVISOR") {
+          actualizarEstadisticas();
+        }
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> Enviar a NLP Cloud`;
+      }
+    }
+
+    function renderizarResultado(data) {
+      document.getElementById("resultadoBox").classList.remove("hidden");
+      document.getElementById("resEmisor").innerText = `Emisor: ${data.usuario_emisor || usuarioActual.username}`;
+      
+      const intSpan = document.getElementById("resIntencion");
+      intSpan.innerText = data.intencion || "DESCONOCIDO";
+      if (data.intencion === "INTENCION_NO_CLARA") {
+        intSpan.className = "badge-fallback px-1.5 py-0.5 rounded text-[11px]";
+      } else {
+        intSpan.className = "text-indigo-400 font-bold text-xs";
+      }
+
+      const confVal = (data.confianza_intencion || 0) * 100;
+      const confSpan = document.getElementById("resConfianza");
+      confSpan.innerText = confVal.toFixed(1) + "%";
+      confSpan.className = confVal < 65 ? "text-rose-400 font-bold" : "text-emerald-400 font-bold";
+
+      const sentSpan = document.getElementById("resSentimiento");
+      sentSpan.innerText = data.sentimiento || "-";
+      if (data.sentimiento === "NEGATIVO") sentSpan.className = "badge-negativo px-1.5 py-0.5 rounded text-[10px]";
+      else if (data.sentimiento === "POSITIVO") sentSpan.className = "badge-positivo px-1.5 py-0.5 rounded text-[10px]";
+      else sentSpan.className = "badge-neutral px-1.5 py-0.5 rounded text-[10px]";
+
+      document.getElementById("resAccion").innerText = data.accion_sugerida || "-";
+
+      const entDiv = document.getElementById("resEntidades");
+      entDiv.innerHTML = "";
+      const ents = data.entidades || {};
+      const keys = Object.keys(ents);
+      if (keys.length === 0) {
+        entDiv.innerText = "(Ninguna entidad)";
+      } else {
+        keys.forEach(k => {
+          const chip = document.createElement("span");
+          chip.className = "bg-indigo-950/80 border border-indigo-700/60 text-indigo-300 text-[11px] px-2 py-0.5 rounded font-mono";
+          chip.innerText = `${k}: ${ents[k]}`;
+          entDiv.appendChild(chip);
+        });
+      }
+    }
+
+    async function ejecutarLote() {
+      const keys = Object.keys(CASOS_DEMO);
+      const btn = document.getElementById("btnLote");
+      btn.disabled = true;
+
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Caso ${i+1}/${keys.length}...`;
+        const txt = CASOS_DEMO[k];
+        try {
+          await fetch(`${getBaseUrl()}/nlp/entender-comando`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${tokenActual}`
+            },
+            body: JSON.stringify({ texto: txt })
+          });
+        } catch(e) {}
+        await new Promise(r => setTimeout(r, 400));
+      }
+
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-bolt"></i> Simular Lote (6 Casos)`;
+      if (usuarioActual && usuarioActual.role === "SUPERVISOR") {
+        actualizarEstadisticas();
+      }
+    }
+
+    async function reiniciarEstadisticas() {
+      if (!confirm("¿Desea reiniciar todas las estadísticas acumuladas en el servidor?")) return;
+      try {
+        const res = await fetch(`${getBaseUrl()}/nlp/estadisticas/reiniciar`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${tokenActual}` }
+        });
+        if (res.ok) {
+          actualizarEstadisticas();
+          document.getElementById("resultadoBox").classList.add("hidden");
+        } else {
+          const err = await res.json();
+          alert("Error: " + err.detail);
+        }
+      } catch (err) {
+        alert("Error al reiniciar estadísticas: " + err.message);
+      }
+    }
+
+    async function actualizarEstadisticas() {
+      if (!usuarioActual || usuarioActual.role !== "SUPERVISOR") return;
+
+      try {
+        const res = await fetch(`${getBaseUrl()}/nlp/estadisticas`, {
+          headers: { "Authorization": `Bearer ${tokenActual}` }
+        });
+        if (!res.ok) return;
+        const stats = await res.json();
+
+        document.getElementById("kpiTotal").innerText = stats.total_mensajes || 0;
+        document.getElementById("kpiConfianza").innerText = ((stats.confianza_promedio || 0) * 100).toFixed(1) + "%";
+        document.getElementById("kpiDerivacion").innerText = ((stats.tasa_derivacion || 0) * 100).toFixed(1) + "%";
+        document.getElementById("kpiAlertas").innerText = stats.alertas_criticas || 0;
+
+        const pi = stats.por_intencion || {};
+        chartInt.data.datasets[0].data = [
+          pi["REPORTE_CALIDAD"] || 0,
+          pi["FALLA_EQUIPO"] || 0,
+          pi["CONSULTA_INVENTARIO"] || 0,
+          pi["SOLICITUD_DESPACHO"] || 0,
+          pi["INTENCION_NO_CLARA"] || 0
+        ];
+        chartInt.update();
+
+        const ps = stats.por_sentimiento || {};
+        chartSent.data.datasets[0].data = [
+          ps["POSITIVO"] || 0,
+          ps["NEUTRAL"] || 0,
+          ps["NEGATIVO"] || 0
+        ];
+        chartSent.update();
+
+        const tbody = document.getElementById("tablaBitacora");
+        tbody.innerHTML = "";
+        const ultimos = stats.ultimos_mensajes || [];
+
+        if (ultimos.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="7" class="px-3 py-6 text-center text-slate-500">No hay mensajes registrados aún en la bitácora.</td></tr>`;
+        } else {
+          ultimos.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-700/30 transition border-b border-slate-700/60";
+            
+            const confPct = ((item.confianza_intencion || 0) * 100).toFixed(1);
+            const confClass = confPct < 65 ? "text-rose-400 font-bold" : "text-slate-200";
+
+            let sentBadge = `<span class="badge-neutral px-2 py-0.5 rounded text-[11px]">NEUTRAL</span>`;
+            if (item.sentimiento === "NEGATIVO") sentBadge = `<span class="badge-negativo px-2 py-0.5 rounded text-[11px]">NEGATIVO</span>`;
+            else if (item.sentimiento === "POSITIVO") sentBadge = `<span class="badge-positivo px-2 py-0.5 rounded text-[11px]">POSITIVO</span>`;
+
+            let intBadge = `<span class="bg-indigo-500/20 text-indigo-300 font-semibold px-2 py-0.5 rounded text-[11px]">${item.intencion}</span>`;
+            if (item.intencion === "INTENCION_NO_CLARA") {
+              intBadge = `<span class="badge-fallback px-2 py-0.5 rounded text-[11px]">INTENCION_NO_CLARA</span>`;
+            }
+
+            const entText = Object.entries(item.entidades || {}).map(([k,v]) => `${k}:${v}`).join(", ") || "-";
+
+            tr.innerHTML = `
+              <td class="px-3 py-2 text-indigo-400 font-mono text-[11px]">${item.usuario_emisor || '-'}</td>
+              <td class="px-3 py-2 font-medium text-white max-w-xs truncate" title="${item.texto_original}">${item.texto_original}</td>
+              <td class="px-3 py-2">${intBadge}</td>
+              <td class="px-3 py-2 ${confClass}">${confPct}%</td>
+              <td class="px-3 py-2">${sentBadge}</td>
+              <td class="px-3 py-2 text-slate-400 font-mono text-[11px]">${entText}</td>
+              <td class="px-3 py-2 font-medium text-amber-400">${item.accion_sugerida}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+      } catch (e) {
+        console.error("Error al actualizar estadísticas:", e);
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initCharts();
+      if (tokenActual && usuarioActual) {
+        aplicarPermisosPorRol();
+      } else {
+        document.getElementById("loginView").classList.remove("hidden");
+      }
+    });
+  </script>
+</body>
+</html>

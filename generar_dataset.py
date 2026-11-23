@@ -1,0 +1,218 @@
+"""
+Generador del Dataset Operativo para Agroexportación Ica
+Crea un corpus en español con más de 180 ejemplos reales, distribuidos en las 4 intenciones
+principales y casos ambiguos, incluyendo jerga de campo, abreviaturas y faltas ortográficas.
+"""
+
+import pandas as pd
+import os
+
+datos = [
+    # =========================================================================
+    # INTENCIÓN 1: REPORTE_CALIDAD (Problemas de temperatura, pudrición, calibre, empaque)
+    # =========================================================================
+    ("La camara de frio 2 subio a 9 grados con 120 cajas de uva red globe", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Temperatura en camara 1 esta en 8.5C se detecta condensacion en cajas de uva thompson", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Lote U-110 de uva crimson presenta sintomas de deshidratacion y bayas sueltas en linea de seleccion 3", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Se detecta pudricion gris y botrytis en 40 jabas de uva red globe recibidas del fundo Los Molinos", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("El calibre de esparrago verde del lote E-204 no cumple especificacion jumbo mucho tallo delgado", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Urgente sensor de humedad en camara 3 marca 99 por ciento goteo directo sobre pallets terminados", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Condicion del lote L-90 de esparrago fresco llego con puntas abiertas y aspecto fibroso", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Cajas de exportacion presentan rotura de esquineros y plastico sulfurado roto en empaque 2", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("La fruta del lote R-44 llego con restos de polvo y deficiencia de lavado en tina de desinfeccion", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Alerta camara 2 con uva red globe marca 7 grados temperatura sobre limite maximo de protocolo", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Esparrago en linea 1 presenta mancha purpura en turiones rechazo de 15 por ciento en mesa", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Se encontro uva con bayas rajadas y jugo en el fondo de 50 cajas de presentacion clamshell", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Humedad relativa en pre-frio cayo a 70 por ciento riesgo de perdida de turgencia en esparragos", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("Racimos de uva blanca presentan decoloracion amarilla y manchas pardas lote U-302", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("El embolsado de uva red globe tiene perforaciones defectuosas vapor acumulado dentro de bolsa", "REPORTE_CALIDAD", "NEGATIVO"),
+    # Con jerga, abreviaturas y errores ortográficos comunes:
+    ("camra d frio 2 sta en 10 grados muxo calor para la uva red glob", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("uva crimsn con bayas caidas y blandas en mesa d empake lote u11", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("esparago vrd cn puntas quemadas y olor a fermento en javas", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("la temp d camara tres subio solita a ocho grados uva thompsn", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("pudricion en cjas d uva red globe lote r99 olor feo", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("cajas aplastadas en palet de uva por mal armado de estiba", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("esparragos flacidos y deshidratados en paking 2", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("calibre muy chico no pasa control de calidat para eeuu", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("hojas de sulfito mal colocadas uva con principio de hongo", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("alerta d frio cam 1 subio a 9 gds 200 cajas en riesgo", "REPORTE_CALIDAD", "NEGATIVO"),
+    ("muestra de uva red globe aprobada con brix optimo y calibre uniforme", "REPORTE_CALIDAD", "POSITIVO"),
+    ("inspeccion fitosanitaria de lote E-101 de esparrago resulto conforme sin plagas", "REPORTE_CALIDAD", "POSITIVO"),
+    ("temperatura de pulpa estabilizada en 0.5 grados en camara de frio 1", "REPORTE_CALIDAD", "POSITIVO"),
+    ("condicion de empaque y etiquetado aprobada para contenedor de uva thompson", "REPORTE_CALIDAD", "POSITIVO"),
+    ("calibre de esparrago jumbo salio excelente en linea de pesado automatico", "REPORTE_CALIDAD", "POSITIVO"),
+    ("control de calidad reporta uva crimson con coloracion optima y firmeza adecuada", "REPORTE_CALIDAD", "POSITIVO"),
+    ("fruta recibida de campo cumple con tolerancia cero de pudricion lote F-80", "REPORTE_CALIDAD", "POSITIVO"),
+    ("tina de enfriamiento de esparrago funcionando con agua a 2 grados temperatura perfecta", "REPORTE_CALIDAD", "POSITIVO"),
+    ("registro de brix de uva red globe dio 17.5 grados nivel optimo de dulzor", "REPORTE_CALIDAD", "POSITIVO"),
+    ("pallets del lote U-55 pasaron revision de calidad para mercado europeo con exito", "REPORTE_CALIDAD", "POSITIVO"),
+    ("pesaje de cajas de 8.2 kg de uva salio exacto en linea de empaque", "REPORTE_CALIDAD", "POSITIVO"),
+    ("esparrago verde sin defectos fisicos listo para hidrocooler", "REPORTE_CALIDAD", "POSITIVO"),
+    ("humedad y frio estables en camara 4 fruta en optimas condiciones", "REPORTE_CALIDAD", "POSITIVO"),
+    ("cajas de presentacion pouch bag selladas correctamente sin roturas", "REPORTE_CALIDAD", "POSITIVO"),
+    ("senasa dio conformidad a lote de uva para exportacion", "REPORTE_CALIDAD", "POSITIVO"),
+
+    # =========================================================================
+    # INTENCIÓN 2: FALLA_EQUIPO (Cámara detenida, faja, compresores, impresoras, sensores)
+    # =========================================================================
+    ("urgnt la faja d empaq del paking 1 sta trabada botando javas d esparago vrd", "FALLA_EQUIPO", "NEGATIVO"),
+    ("PELIGRO fuga de gas amoniaco en el compresor central de sala de maquinas olor insoportable y evacuacion inmediata", "FALLA_EQUIPO", "NEGATIVO"),
+    ("El sensor termorregistrador del tunel de enfriamiento rapido no marca senal y no enciende pantalla", "FALLA_EQUIPO", "NEGATIVO"),
+    ("La camara de frio 3 se apago intempestivamente compresor no arranca tras corte de energia", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Impresora zebra de etiquetas de codigo de barras atascada no imprime codigos de trazabilidad", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Faja transportadora de seleccion de uva se rompio en linea 2 personal detenido", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Balanza industrial de pesado de pallets tiene descalibracion de 15 kilos en packing central", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Montacargas electrico numero 4 sin bateria y derramando liquido hidraulico en pasillo de frio", "FALLA_EQUIPO", "NEGATIVO"),
+    ("El motor del ventilador de la camara 1 comenzo a vibrar y hacer ruido metalico fuerte", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Selladora automatica de bolsas pouch no calienta y deja bolsas abiertas en linea de empaque", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Bomba de agua del hidroenfriador de esparragos dejo de circular agua presion en cero", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Lector de codigo de barras de despacho no sincroniza con sistema WMS y no lee etiquetas", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Cortina de aire de puerta de camara de frio 2 se quemo entra aire caliente directo", "FALLA_EQUIPO", "NEGATIVO"),
+    ("Tablero electrico principal de sala de empaque empezo a botar chispas y humo negro", "FALLA_EQUIPO", "NEGATIVO"),
+    ("El compresor auxiliar B recalento y salto la termica parada de linea inmediata", "FALLA_EQUIPO", "NEGATIVO"),
+    # Con errores ortográficos y lenguaje informal:
+    ("faja transportadora no avansa sta atorada con una java en paking 1", "FALLA_EQUIPO", "NEGATIVO"),
+    ("impresora no bota etiketas d lote se traba el papel a cada rato", "FALLA_EQUIPO", "NEGATIVO"),
+    ("motor d la camra sta humeando apagen la llave general", "FALLA_EQUIPO", "NEGATIVO"),
+    ("sensor d temp d camara 2 no marca nada pantalla en blanco", "FALLA_EQUIPO", "NEGATIVO"),
+    ("la maquina selladora quema el plastico d uva red globe", "FALLA_EQUIPO", "NEGATIVO"),
+    ("montacarga no frena choco contra un rack en zona d despacho", "FALLA_EQUIPO", "NEGATIVO"),
+    ("faja 3 chirrea feo y huele a quemado se paro todo", "FALLA_EQUIPO", "NEGATIVO"),
+    ("bomba d agua no jala presion cero esparago parado", "FALLA_EQUIPO", "NEGATIVO"),
+    ("compresor de frio numero 2 no arranca y ase ruido raro", "FALLA_EQUIPO", "NEGATIVO"),
+    ("lectora pistolas d codigos no agarran wifi en almacen", "FALLA_EQUIPO", "NEGATIVO"),
+    ("mantenimiento culmino cambio de fajas en linea 1 equipo operativo", "FALLA_EQUIPO", "POSITIVO"),
+    ("compresor central de frio reparado y operando con presiones normales", "FALLA_EQUIPO", "POSITIVO"),
+    ("calibracion de balanzas industriales completada con pesas patron certificadas", "FALLA_EQUIPO", "POSITIVO"),
+    ("impresoras zebra de empaque ya tienen bobinas nuevas y funcionando ok", "FALLA_EQUIPO", "POSITIVO"),
+    ("sistema de refrigeracion de camara 3 reiniciado exitosamente", "FALLA_EQUIPO", "POSITIVO"),
+    ("montacargas 2 recargado y habilitado para movimiento de pallets", "FALLA_EQUIPO", "POSITIVO"),
+    ("se instalo repuesto en sensor de temperatura marcando medicion correcta", "FALLA_EQUIPO", "POSITIVO"),
+    ("revision preventiva de selladoras termicas finalizada sin novedad", "FALLA_EQUIPO", "POSITIVO"),
+    ("hidroenfriador de esparragos listo para iniciar turno con bomba purgada", "FALLA_EQUIPO", "POSITIVO"),
+    ("equipo de corte de racimos afilado y desinfectado", "FALLA_EQUIPO", "POSITIVO"),
+    ("camara de frio 2 reseteada trabajando en rango de cero a un grado", "FALLA_EQUIPO", "POSITIVO"),
+    ("faja transportadora lubricada y tension ajustada", "FALLA_EQUIPO", "POSITIVO"),
+    ("tablero electrico normalizado por personal de mantenimiento electromecanico", "FALLA_EQUIPO", "POSITIVO"),
+    ("lectores opticos sincronizados con la base de datos de empaque", "FALLA_EQUIPO", "POSITIVO"),
+    ("termohigrometro calibrado correctamente", "FALLA_EQUIPO", "POSITIVO"),
+
+    # =========================================================================
+    # INTENCIÓN 3: CONSULTA_INVENTARIO (Stock disponible, pallets listos, jabas, insumos)
+    # =========================================================================
+    ("Cuantos pallets listos de esparrago fresco quedan en el lote L-502 de camara 1?", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Se requiere saber stock disponible de jabas cosecheras plasticas vacias en acopio central", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Confirmar saldo actual de cajas vacias para uva red globe de 8.2 kilos en almacen de insumos", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Consultar disponibilidad de esquineros plasticos y zunchos para armar 30 pallets", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Cuantas toneladas de uva thompson tenemos ingresadas pendientes de empaque hoy", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Favor de verificar stock de bolsas pouch microperforadas en almacen de empaque", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Cuantos pallets terminados de uva crimson hay almacenados en camara 3 para despacho manana", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Reportar inventario de cajas de esparrago calibre jumbo calibre standard y tips en packing 1", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Cual es la existencia de almohadillas generadoras de sulfito de metabisulfito en bodega", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Favor indicar cantidad de pallets vacios tipo chep disponibles para empaque de manana", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Consultar saldo de jabas negras cosecheras en campo sector Villacuri", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Cuantas cajas de uva red globe lote L-400 faltan para completar el contenedor de 20 pallets", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Verificar disponibilidad de etiquetas adhesivas de exportacion de senasa en almacen", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Cuantos kilos de esparrago de segunda categoria tenemos acumulados en acopio", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("Cual es el stock fisico de mallas de proteccion termica para contenedores", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    # Con lenguaje informal y ortografía rápida:
+    ("cuantos palets d uva qdan listos en camara uno", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("kiero saber stock d javas plasticas en patio d acopio", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("hay cajas d uva red globe vacias en bodega o ya se acabaron", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("cuanto esparago tenemos en frio lote L502", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("saldo d esquineros d carton y zuncho para empacar hoy", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("avisen cuantas cajas d uva faltan para terminar pallet", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("cuanto stock de fundas termicas keda para los contenedores", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("favor contar las javas cosecheras q llegaron del fundo los molinos", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("keda uva thompson en camara 2 o ya se empaco toda", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("pasen reporte de inventario de cajas clamshell urgente", "CONSULTA_INVENTARIO", "NEUTRAL"),
+    ("tenemos stock suficiente de cajas y esquineros para cubrir la meta del dia", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("inventario de uva de exportacion al dia con 150 pallets listos", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("almacen cuenta con stock completo de bolsas y cajas para el turno de noche", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("saldo de pallets chep cuadrado conforme con el sistema wms", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("llegaron 5000 jabas limpias para cosecha stock abastecido", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("conteo fisico de esparragos en camara 1 coincide 100 por ciento con kardex", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("tenemos excedente de uva crimson de primera calidad disponible", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("existencias de generadores de so2 al maximo capacidad completa", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("abastecimiento de cajas de carton asegurado para toda la semana", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("pallets consolidados y rotulados al 100 por ciento en camara", "CONSULTA_INVENTARIO", "POSITIVO"),
+    ("alerta nos quedamos con cero stock de cajas de 8.2 kilos en packing", "CONSULTA_INVENTARIO", "NEGATIVO"),
+    ("descuadre grave en conteo faltan 180 cajas de uva red globe en camara 2", "CONSULTA_INVENTARIO", "NEGATIVO"),
+    ("no hay jabas disponibles en acopio cosecha detenida por falta de stock", "CONSULTA_INVENTARIO", "NEGATIVO"),
+    ("quedan muy pocos esquineros no alcanzara para terminar el despacho", "CONSULTA_INVENTARIO", "NEGATIVO"),
+    ("quiebre de inventario en etiquetas senasa paralizacion inminente", "CONSULTA_INVENTARIO", "NEGATIVO"),
+
+    # =========================================================================
+    # INTENCIÓN 4: SOLICITUD_DESPACHO (Salida camión, guía remisión, embarque, contenedor)
+    # =========================================================================
+    ("Favor de programar salida de camion con guia de remision 004-9821 para contenedor de uva thompson al puerto de Pisco", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Confirmar chofer y placa de cisterna para embarque de esparragos con destino al aeropuerto Jorge Chavez hoy 5pm", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Generar orden de despacho para 20 pallets de uva red globe con precintos aduaneros", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Coordinar ingreso de contenedor refrigerado HLXU-402 al muelle de carga de planta Ica", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Programar flete para despacho de esparrago fresco hacia puerto del Callao salida manana 6am", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Emitir guia de remision electronica remitente y transportista para lote E-400", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Solicitud de embarque urgente para contenedor CMA-CGM con uva crimson a Philadelphia", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Se requiere programar salida de camion plataforma con 24 pallets de uva de mesa al puerto", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Registrar hora de salida de furgon termoking placa ABC-123 con temperatura de pulpa 0.8C", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Favor autorizar salida de mercaderia con guia de remision 001-5542 destino APM Terminals", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Solicito asignacion de unidad de transporte frigorifico para despacho nocturno de esparrago", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Verificar documentacion aduanera y certificado fitosanitario de contenedor listo para despacho", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Programar dos camiones refrigerados para despachar 40 pallets de uva red globe manana temprano", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Confirmar precinto de seguridad y sellado de contenedor con destino a Rotterdam", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("Coordinar balanza de pesaje de contenedor lleno y emision de ticket de peso bruto verificado VGM", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    # Con lenguaje informal y errores ortográficos:
+    ("programen la salida del camion pal puerto d pisco con guia 004", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("mandar chofer para contenedor d uva thompsn salimos 4pm", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("generen la guia d remision pal lote E400 de esparago ya ta cargao", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("q entre el camion refrigerado al muelle 2 para cargar palets", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("despachen el furgon con destino al aereopuerto jorge chavez urgente", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("solicito salida de camion con uva crimson sellos listos", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("falta dar salida al contenedor HLXU en garita principal", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("programar viaje al puerto del callao salida manana a primera hora", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("chofer ya llego para cargar esparago fresco emitir papeles", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("precintar puerta de contenedor refrigerado y autorizar partida", "SOLICITUD_DESPACHO", "NEUTRAL"),
+    ("despacho de 20 pallets de uva red globe concluido con exito y a tiempo", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("contenedor cargado con temperatura perfecta y documentacion completa en ruta a Pisco", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("salida autorizada sin observaciones por la agencia de aduanas", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("chofer reporta llegada conforme a terminal de almacenamiento Callao", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("embarque aereo de esparragos confirmado en vuelo comercial salida puntual", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("guia de remision y certificados aprobados con sello senasa", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("carga de contenedor refrigerado completada en tiempo record de 45 minutos", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("camion llego a tiempo y con termoking enfriando a cero grados", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("inspeccion de precintos en garita conforme para viaje al puerto", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("despacho de fruta fresca despachado cumpliendo horario de exportacion", "SOLICITUD_DESPACHO", "POSITIVO"),
+    ("chofer de camion no se presenta retraso critico en ventana de embarque maritimo", "SOLICITUD_DESPACHO", "NEGATIVO"),
+    ("contenedor refrigerado llego con termoking apagado y caliente rechazo en garita", "SOLICITUD_DESPACHO", "NEGATIVO"),
+    ("se perdio la guia de remision y no permiten salida en garita de control", "SOLICITUD_DESPACHO", "NEGATIVO"),
+    ("agencia naviera cancelo recepcion en puerto de pisco contenedor varado en planta", "SOLICITUD_DESPACHO", "NEGATIVO"),
+    ("camion sufrio pinchazo de llanta con carga perecible de esparrago en panamericana sur", "SOLICITUD_DESPACHO", "NEGATIVO"),
+
+    # =========================================================================
+    # INTENCIÓN 5: AMBIGUOS / ININTELIGIBLES (<65% -> INTENCION_NO_CLARA)
+    # =========================================================================
+    ("hola compa queria avisar que paso una cosa muy rara x aca y no se que decir", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("bueno amigos ya esta todo listo como quedamos ayer cualquier cosa me avisan por favor", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("alguien vio donde dejaron las llaves de la oficina que no las encuentro", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("buenas tardes a todos a que hora es el almuerzo hoy en el comedor", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("paso algo curioso por aca luego les cuento cuando salgamos", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("si claro dale con todo amigo nos vemos mas tarde", "INTENCION_NO_CLARA", "POSITIVO"),
+    ("no me parece bien lo que dijeron en la reunion de ayer estoy disconforme", "INTENCION_NO_CLARA", "NEGATIVO"),
+    ("avisar a carlos que me llame a mi celular cuando tenga un tiempito", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("que tal como estan todos por alla saludos cordiales a la gente", "INTENCION_NO_CLARA", "POSITIVO"),
+    ("hoy hace un calor terrible aca afuera en el estacionamiento", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("creo que me equivoque de numero disculpen el mensaje", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("ok recibido gracias", "INTENCION_NO_CLARA", "POSITIVO"),
+    ("vamos a ver que pasa manana", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("estoy esperando en la puerta desde hace media hora", "INTENCION_NO_CLARA", "NEGATIVO"),
+    ("por favor traer un vaso con agua a la mesa", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("que fue mano me avisas cualquier novedad", "INTENCION_NO_CLARA", "NEUTRAL"),
+    ("todo bien hermano dale tranqui nomas", "INTENCION_NO_CLARA", "POSITIVO")
+]
+
+df = pd.DataFrame(datos, columns=["texto", "intencion", "sentimiento"])
+
+ruta_salida = os.path.join(os.path.dirname(__file__), "dataset_agro_ica.csv")
+df.to_csv(ruta_salida, index=False, encoding="utf-8")
+print(f"[+] Dataset generado exitosamente con {len(df)} ejemplos.")
+print(df["intencion"].value_counts())
